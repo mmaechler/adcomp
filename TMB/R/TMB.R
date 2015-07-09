@@ -460,9 +460,13 @@ MakeADFun <- function(data,parameters,map=list(),
       lookup <- function(A,B,r=NULL){
         A <- tril(A);B <- tril(B)
         B@x[] <- seq.int(length.out=length(B@x)) ## Pointers to full B matrix (FIXME: what if length(B@x)>2^32 ? )
-        B <- forceSymmetric(B)
-        if(!is.null(r))B <- B[r,r,drop=FALSE] ## Reduce to have same dim as A
-        m <- .Call("match_pattern",A,B,PACKAGE="TMB") ## Same length as A@x with pointers to B@x
+        Bpattern <- as(B, "nsparseMatrix")
+        if(!is.null(r)){
+            ## Alternative way to do get pattern of
+            ##   B <- forceSymmetric(B); B[r,r,drop=FALSE]
+            Bpattern <- tril(Bpattern[r,r,drop=FALSE]) + tril(t(Bpattern)[r,r,drop=FALSE])
+        }
+        m <- .Call("match_pattern",A,Bpattern,PACKAGE="TMB") ## Same length as A@x with pointers to B@x
         B@x[m]
       }
       if(is.null(e$ind1)){
