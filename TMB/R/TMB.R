@@ -458,15 +458,20 @@ MakeADFun <- function(data,parameters,map=list(),
       ## General function to lookup entries A in B[r,r] assuming pattern of A
       ## is subset of pattern of B[r,r].
       lookup <- function(A,B,r=NULL){
-        A <- tril(A);B <- tril(B)
-        B@x[] <- seq.int(length.out=length(B@x)) ## Pointers to full B matrix (FIXME: what if length(B@x)>2^32 ? )
-        Bpattern <- as(B, "nsparseMatrix")
+        A <- tril(A); B <- tril(B)
+        B@x[] <- seq.int(length.out=length(B@x)) ## Pointers to full B matrix (Can have up to 2^31-1 non-zeros)
         if(!is.null(r)){
-            ## Alternative way to do get pattern of
-            ##   B <- forceSymmetric(B); B[r,r,drop=FALSE]
-            Bpattern <- tril(Bpattern[r,r,drop=FALSE]) + tril(t(Bpattern)[r,r,drop=FALSE])
+            ## Goal is to get:
+            ##     B <- forceSymmetric(B)
+            ##     B <- B[r,r,drop=FALSE]
+            ## However the internal Matrix code for
+            ## "B[r,r,drop=FALSE]" creates temporary "dgCMatrix"
+            ## thereby almost doubling the number of non-zeros. Need
+            ## solution that works with max (2^31-1) non-zeros:
+            B <- .Call("tmb_half_diag", B, PACKAGE="TMB")
+            B <- tril( B[r,r,drop=FALSE] ) + tril( t(B)[r,r,drop=FALSE] )
         }
-        m <- .Call("match_pattern",A,Bpattern,PACKAGE="TMB") ## Same length as A@x with pointers to B@x
+        m <- .Call("match_pattern", A, B, PACKAGE="TMB") ## Same length as A@x with pointers to B@x
         B@x[m]
       }
       if(is.null(e$ind1)){

@@ -271,3 +271,9 @@ SEXP tmb_sparse_izamd(SEXP A_, SEXP mark_, SEXP diag_){
   return A_;
 }
 
+/* Half the diagonal of a matrix (note: modifies input) */
+SEXP tmb_half_diag(SEXP A_){
+  CHM_SP A = AS_CHM_SP(A_);
+  half_diag(A);
+  return A_;
+}
